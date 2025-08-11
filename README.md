@@ -115,6 +115,18 @@ Settings are automatically saved to:
 
 ---
 
+## Future Plans
+
+Feature-complete for now but open to contributions.
+
+---
+
+## Connect With Me  
+Email: [b.denizkoca@gmail.com](mailto:b.denizkoca@gmail.com)  
+GitHub: [@BDenizKoca](https://github.com/BDenizKoca) 
+
+---
+
 ## License
 
 MIT License - You can use, modify, and distribute freely with attribution.
