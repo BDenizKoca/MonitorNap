@@ -1,6 +1,6 @@
 # MonitorNap
 
-**📥 Download:** [MonitorNap.exe](https://github.com/BDenizKoca/MonitorNap/releases/latest/download/MonitorNap.exe) (37MB) | [All Releases](https://github.com/BDenizKoca/MonitorNap/releases)
+**📥 Download:** [MonitorNap.exe](https://github.com/BDenizKoca/MonitorNap/releases/latest/download/MonitorNap.exe) (36MB) | [All Releases](https://github.com/BDenizKoca/MonitorNap/releases)
 
 MonitorNap dims your monitors after inactivity using hardware (DDC/CI) and/or a software overlay. It runs in the system tray and supports a global hotkey for "Awake Mode".
 
