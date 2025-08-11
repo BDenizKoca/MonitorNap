@@ -592,41 +592,28 @@ class MainWindow(QMainWindow):
             monitors_layout.addSpacing(5)
         main_layout.addWidget(monitors_group)
 
-        # Quick Actions (same as tray menu)
+  # Quick Actions (same as tray menu)
         actions_group = QGroupBox("Quick Actions")
-        actions_layout = QGridLayout(actions_group)
-        
-        # Row 1: Immediate actions
-        nap_now_btn = QPushButton("💤 Nap Now")
+        actions_layout = QHBoxLayout(actions_group)
+
+        nap_now_btn = QPushButton("Nap Now")
         nap_now_btn.setToolTip("Immediately dim all monitors")
         nap_now_btn.clicked.connect(self.nap_now)
-        nap_now_btn.setStyleSheet("QPushButton { background-color: #FF6B6B; color: white; font-weight: bold; }")
-        
-        resume_now_btn = QPushButton("⚡ Resume Now")
+
+        resume_now_btn = QPushButton("Resume Now")
         resume_now_btn.setToolTip("Resume dimming immediately (cancel any pause)")
         resume_now_btn.clicked.connect(self.resume_now)
-        resume_now_btn.setStyleSheet("QPushButton { background-color: #4ECDC4; color: white; font-weight: bold; }")
-        
-        actions_layout.addWidget(nap_now_btn, 0, 0)
-        actions_layout.addWidget(resume_now_btn, 0, 1)
-        
-        # Row 2: Pause timers
+
         pause_label = QLabel("Pause Dimming:")
-        pause_15_btn = QPushButton("15 min")
-        pause_15_btn.clicked.connect(lambda: self.pause_dimming(15))
-        pause_30_btn = QPushButton("30 min")
-        pause_30_btn.clicked.connect(lambda: self.pause_dimming(30))
-        pause_60_btn = QPushButton("60 min")
-        pause_60_btn.clicked.connect(lambda: self.pause_dimming(60))
-        
-        for btn in [pause_15_btn, pause_30_btn, pause_60_btn]:
-            btn.setStyleSheet("QPushButton { background-color: #45B7D1; color: white; }")
-        
-        actions_layout.addWidget(pause_label, 1, 0)
-        actions_layout.addWidget(pause_15_btn, 1, 1)
-        actions_layout.addWidget(pause_30_btn, 1, 2)
-        actions_layout.addWidget(pause_60_btn, 1, 3)
-        
+
+        actions_layout.addWidget(nap_now_btn)
+        actions_layout.addWidget(resume_now_btn)
+        actions_layout.addWidget(pause_label)
+        for minutes in (15, 30, 60):
+            btn = QPushButton(f"{minutes} min")
+            btn.clicked.connect(lambda _, m=minutes: self.pause_dimming(m))
+            actions_layout.addWidget(btn)
+
         main_layout.addWidget(actions_group)
 
         # Bottom controls
