@@ -1,6 +1,6 @@
 # MonitorNap
 
-**📥 Download:** [monitornap.exe](https://github.com/BDenizKoca/MonitorNap/releases/latest/download/monitornap.exe) (37MB) | [All Releases](https://github.com/BDenizKoca/MonitorNap/releases)
+**📥 Download:** [MonitorNap.exe](https://github.com/BDenizKoca/MonitorNap/releases/latest/download/MonitorNap.exe) (37MB) | [All Releases](https://github.com/BDenizKoca/MonitorNap/releases)
 
 MonitorNap dims your monitors after inactivity using hardware (DDC/CI) and/or a software overlay. It runs in the system tray and supports a global hotkey for "Awake Mode".
 
@@ -25,7 +25,7 @@ I was getting blinded by my second monitor but I also get tired of having to con
 ## Installation
 
 ### **Quick Start (Recommended)**
-1. **Download:** [monitornap.exe](https://github.com/BDenizKoca/MonitorNap/releases/latest/download/monitornap.exe) (37MB) - No installation required!
+1. **Download:** [MonitorNap.exe](https://github.com/BDenizKoca/MonitorNap/releases/latest/download/MonitorNap.exe) (37MB) - No installation required!
 2. **Run:** Double-click the executable
 3. **Configure:** Use "Identify" to map your monitors
 4. **Optional:** Enable "Start on Windows Startup"

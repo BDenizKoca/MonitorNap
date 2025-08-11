@@ -16,13 +16,15 @@ from monitorcontrol import get_monitors
 from datetime import datetime
 
 from PyQt6.QtCore import Qt, QTimer, QRect, QObject, QAbstractNativeEventFilter
-from PyQt6.QtGui import QIcon, QPainter, QColor, QAction, QCursor
+from PyQt6.QtGui import QIcon, QPainter, QColor, QAction, QCursor, QPixmap
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QCheckBox, QPushButton, QSlider, QLineEdit, QColorDialog,
     QSystemTrayIcon, QMenu, QMessageBox, QGroupBox, QFileDialog, QSpinBox, QToolTip
 )
 
+# -------------------------------------------------------------------------------------
+# Icon Resolution
 # -------------------------------------------------------------------------------------
 # Resource and Icon Paths (works both in dev and PyInstaller builds)
 # -------------------------------------------------------------------------------------
@@ -505,7 +507,7 @@ class MainWindow(QMainWindow):
         self.config = config_manager.config
 
         self.setWindowTitle("MonitorNap")
-        self.setWindowIcon(QIcon(ICON_PATH))
+        self.setWindowIcon(QApplication.instance().app_icon)
         self.resize(720, 480)
 
         self.record_thread = None
@@ -1005,9 +1007,12 @@ class TrayIcon(QSystemTrayIcon):
     def __init__(self, icon, parent, main_window: MainWindow):
         super().__init__(icon, parent)
         self.main_window = main_window
+        
+        # Ensure the icon is set immediately
+        self.setIcon(icon)
 
         # Prepare icons for states (fallback to the same icon if no alt found)
-        self.icon_normal = QIcon(ICON_PATH)
+        self.icon_normal = QApplication.instance().app_icon
         awake_candidates = [
             "myicon-awake.ico",
             "icon-awake.png",
@@ -1020,7 +1025,7 @@ class TrayIcon(QSystemTrayIcon):
             if os.path.exists(p):
                 awake_icon_path = p
                 break
-        self.icon_awake = QIcon(awake_icon_path) if awake_icon_path else QIcon(ICON_PATH)
+        self.icon_awake = QIcon(awake_icon_path) if awake_icon_path else QApplication.instance().app_icon
 
         menu = QMenu(parent)
         show_act = QAction("Show/Hide", self)
@@ -1159,6 +1164,16 @@ class MonitorNapApplication(QApplication):
     def __init__(self, argv, config_manager):
         super().__init__(argv)
         self.setQuitOnLastWindowClosed(False)
+        
+        # Initialize application icon (now that QApplication exists)
+        icon_path = resolve_icon_path()
+        if icon_path and os.path.exists(icon_path):
+            self.app_icon = QIcon(icon_path)
+            log_message(f"Loaded icon from: {icon_path}")
+        else:
+            log_message("Warning: Icon files not found, using default system icon")
+            self.app_icon = QIcon()  # Use default system icon
+        
         self.config_manager = config_manager
         self.config = config_manager.config
         # Set global debug mode flag
@@ -1187,10 +1202,22 @@ class MonitorNapApplication(QApplication):
             self.controllers.append(ctl)
 
         self.main_window = MainWindow(self.controllers, self.config_manager)
-        self.tray_icon = TrayIcon(QIcon(ICON_PATH), self.main_window, self.main_window)
+        
+        # Check if system tray is available
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            log_message("System tray is not available on this system")
+        
+        self.tray_icon = TrayIcon(self.app_icon, self.main_window, self.main_window)
         # Expose tray icon on app for easy access from MainWindow
         setattr(self, "tray_icon", self.tray_icon)
         self.tray_icon.show()
+        
+        # Force tray icon to be visible and set tooltip
+        if self.tray_icon.isVisible():
+            log_message("Tray icon is visible")
+        else:
+            log_message("Warning: Tray icon is not visible")
+        self.tray_icon.setToolTip("MonitorNap - Right-click for options")
 
         old_hotkey = self.config.get("awake_mode_shortcut", "")
         if old_hotkey:
