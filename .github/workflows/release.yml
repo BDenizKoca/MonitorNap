@@ -62,7 +62,7 @@ jobs:
       with:
         tag_name: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}
-        body: ${{ github.event.head_commit.message }}
+        body: Automated cross-platform release for MonitorNap v${{ github.ref_name }}
         draft: false
         prerelease: false
         files: artifacts/**/*
