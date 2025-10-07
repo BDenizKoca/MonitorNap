@@ -36,12 +36,12 @@ jobs:
     - name: Build Windows executable
       if: runner.os == 'Windows'
       run: |
-        pyinstaller --onefile --windowed --icon=myicon.ico -n MonitorNap-Windows --distpath dist/windows --workpath build/windows monitornap.py
+        pyinstaller --onefile --windowed --icon=myicon.ico --add-data "myicon.ico;." --noupx -n MonitorNap-Windows --distpath dist/windows --workpath build/windows monitornap.py
 
     - name: Build non-Windows executable
       if: runner.os != 'Windows'
       run: |
-        pyinstaller --onefile -n MonitorNap-${{ runner.os }} --distpath dist/${{ runner.os }} --workpath build/${{ runner.os }} monitornap.py
+        pyinstaller --onefile --windowed --add-data "myicon.ico:." --noupx -n MonitorNap-${{ runner.os }} --distpath dist/${{ runner.os }} --workpath build/${{ runner.os }} monitornap.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

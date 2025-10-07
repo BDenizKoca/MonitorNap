@@ -65,6 +65,14 @@ python monitornap.py
 ```
 
 
+
+### Build the Standalone Executable
+```powershell
+pyinstaller --onefile --windowed --icon=myicon.ico --add-data "myicon.ico;." --noupx `
+  -n MonitorNap-Windows --distpath dist/windows --workpath build/windows monitornap.py
+```
+This mirrors the GitHub Actions release build so the tray/taskbar icons ship correctly.
+
 ### Requirements
 - **Operating System:** Windows 10/11, Linux (Ubuntu), or macOS
 - **Python 3.8+** (if running from source)
@@ -119,7 +127,13 @@ Settings are automatically saved to:
 - **Windows:** `%APPDATA%\MonitorNap\monitornap_config.json`
 - **Linux/macOS:** `~/.monitornap/monitornap_config.json`
 
-
+## Windows SmartScreen & Antivirus
+- MonitorNap binaries are unsigned open-source builds. Windows SmartScreen may warn until you choose `More info` -> `Run anyway`.
+- Building from source with the PyInstaller command above produces the same binary and inherits full trust on your machine.
+- If you own an Authenticode certificate you can remove the warning entirely with:  
+  `signtool sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a dist\windows\MonitorNap-Windows.exe`
+- UPX compression is disabled in current builds to reduce antivirus heuristic false positives.
+- Verify downloaded artifacts (for example `Get-FileHash dist\windows\MonitorNap-Windows.exe`) before running them.
 
 ## Known Limitations
 

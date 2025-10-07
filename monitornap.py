@@ -1176,6 +1176,7 @@ class MonitorNapApplication(QApplication):
         else:
             log_message("Warning: Icon files not found, using default system icon")
             self.app_icon = QIcon()  # Use default system icon
+        self.setWindowIcon(self.app_icon)
         
         self.config_manager = config_manager
         self.config = config_manager.config
@@ -1275,6 +1276,12 @@ def main():
     log_message("MonitorNap starting up...")
     signal.signal(signal.SIGINT, lambda sig, frame: QApplication.instance().quit())
     signal.signal(signal.SIGTERM, lambda sig, frame: QApplication.instance().quit())
+
+    # Enable high DPI pixmaps so tray/taskbar icons stay crisp at higher scales
+    try:
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps, True)
+    except AttributeError:
+        pass
 
     config_manager = ConfigManager()
     app = MonitorNapApplication(sys.argv, config_manager)
