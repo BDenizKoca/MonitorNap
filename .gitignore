@@ -33,6 +33,8 @@ venv.bak/
 # PyInstaller
 *.manifest
 *.spec
+dist/
+dist/*
 
 # IDE
 .vscode/
