@@ -6,7 +6,7 @@
 **Turn Off Your Displays with a Single Click**
 A tiny, cross-platform tray utility for instantly putting your monitors to sleep without locking your computer.
 
-[![CI](https://github.com/BDenizKoca/MonitorNap/actions/workflows/ci.yml/badge.svg)](https://github.com/BDenizKoca/MonitorNap/actions/workflows/ci.yml)
+[![CI](https://github.com/BDenizKoca/MonitorNap/actions/workflows/release.yml/badge.svg)](https://github.com/BDenizKoca/MonitorNap/actions/workflows/release.yml)
 [![Release](https://github.com/BDenizKoca/MonitorNap/actions/workflows/release.yml/badge.svg)](https://github.com/BDenizKoca/MonitorNap/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
