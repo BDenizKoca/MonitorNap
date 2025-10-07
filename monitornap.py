@@ -23,6 +23,15 @@ from PyQt6.QtWidgets import (
     QSystemTrayIcon, QMenu, QMessageBox, QGroupBox, QFileDialog, QSpinBox, QToolTip
 )
 
+import screeninfo
+
+if os.name == 'nt':
+    import win32api
+    import win32gui
+    import winreg
+
+__version__ = "1.1.0"
+
 # -------------------------------------------------------------------------------------
 # Icon Resolution
 # -------------------------------------------------------------------------------------
@@ -48,10 +57,11 @@ ICON_PATH = resolve_icon_path()
 # -------------------------------------------------------------------------------------
 # Set Process DPI Awareness
 # -------------------------------------------------------------------------------------
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(2)
-except Exception:
-    pass
+if os.name == 'nt':
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except Exception:
+        pass
 
 # -------------------------------------------------------------------------------------
 # Logging Utility
@@ -134,6 +144,9 @@ class ConfigManager:
 # Set Startup Registry (Windows)
 # -------------------------------------------------------------------------------------
 def set_startup_registry(enabled, script_path=None, args: str = ""):
+    if os.name != 'nt':
+        log_message("Startup registry not supported on this platform.")
+        return
     reg_key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
     app_name = "MonitorNap"
     try:
@@ -253,13 +266,11 @@ class MonitorController(QObject):
 
     def _update_geometry_from_system(self):
         idx = self.display_index
-        disp_monitors = win32api.EnumDisplayMonitors()
-        if 0 <= idx < len(disp_monitors):
-            handle, _, _ = disp_monitors[idx]
-            info = win32api.GetMonitorInfo(handle)
-            (l, t, r, b) = info.get("Monitor", (0, 0, 800, 600))
-            self.left, self.top = l, t
-            self.width, self.height = r - l, b - t
+        monitors = screeninfo.get_monitors()
+        if 0 <= idx < len(monitors):
+            mon = monitors[idx]
+            self.left, self.top = mon.x, mon.y
+            self.width, self.height = mon.width, mon.height
         else:
             self.left, self.top, self.width, self.height = 0, 0, 800, 600
 
@@ -278,30 +289,32 @@ class MonitorController(QObject):
 
     def is_monitor_active(self):
         # Check if the cursor is within this monitor's bounds.
-        x, y = win32api.GetCursorPos()
+        cursor_pos = QCursor.pos()
+        x, y = cursor_pos.x(), cursor_pos.y()
         if self.left <= x < (self.left + self.width) and self.top <= y < (self.top + self.height):
             return True
 
-        # Check if the foreground window substantially covers this monitor (fullscreen or borderless)
-        fg_hwnd = win32gui.GetForegroundWindow()
-        if fg_hwnd and win32gui.IsWindowVisible(fg_hwnd):
-            try:
-                win_left, win_top, win_right, win_bottom = win32gui.GetWindowRect(fg_hwnd)
-                # Compute overlap area ratio
-                mon_left, mon_top = self.left, self.top
-                mon_right, mon_bottom = self.left + self.width, self.top + self.height
-                inter_left = max(mon_left, win_left)
-                inter_top = max(mon_top, win_top)
-                inter_right = min(mon_right, win_right)
-                inter_bottom = min(mon_bottom, win_bottom)
-                inter_w = max(0, inter_right - inter_left)
-                inter_h = max(0, inter_bottom - inter_top)
-                inter_area = inter_w * inter_h
-                mon_area = max(1, self.width * self.height)
-                if inter_area / mon_area >= 0.95:
-                    return True
-            except Exception:
-                pass
+        # Check if the foreground window substantially covers this monitor (fullscreen or borderless) - Windows only
+        if os.name == 'nt':
+            fg_hwnd = win32gui.GetForegroundWindow()
+            if fg_hwnd and win32gui.IsWindowVisible(fg_hwnd):
+                try:
+                    win_left, win_top, win_right, win_bottom = win32gui.GetWindowRect(fg_hwnd)
+                    # Compute overlap area ratio
+                    mon_left, mon_top = self.left, self.top
+                    mon_right, mon_bottom = self.left + self.width, self.top + self.height
+                    inter_left = max(mon_left, win_left)
+                    inter_top = max(mon_top, win_top)
+                    inter_right = min(mon_right, win_right)
+                    inter_bottom = min(mon_bottom, win_bottom)
+                    inter_w = max(0, inter_right - inter_left)
+                    inter_h = max(0, inter_bottom - inter_top)
+                    inter_area = inter_w * inter_h
+                    mon_area = max(1, self.width * self.height)
+                    if inter_area / mon_area >= 0.95:
+                        return True
+                except Exception:
+                    pass
         return False
 
     def check_inactivity(self):
@@ -571,8 +584,10 @@ class MainWindow(QMainWindow):
         shortcut_layout.addWidget(self.shortcut_button)
         global_layout.addLayout(shortcut_layout, 1, 1, 1, 2)
 
-        self.startup_checkbox = QCheckBox("Start on Windows Startup")
+        self.startup_checkbox = QCheckBox("Start on Windows Startup" if os.name == 'nt' else "Start on login (not supported)")
         self.startup_checkbox.setChecked(self.config.get("start_on_startup", False))
+        if os.name != 'nt':
+            self.startup_checkbox.setEnabled(False)
         self.startup_checkbox.toggled.connect(self.on_startup_toggled)
         global_layout.addWidget(self.startup_checkbox, 2, 0)
 
@@ -651,7 +666,8 @@ class MainWindow(QMainWindow):
 
         # Minimal mapping: a simple display selector and Identify
         row = 0
-        disp_count = len(win32api.EnumDisplayMonitors())
+        monitors = screeninfo.get_monitors()
+        disp_count = len(monitors)
         disp_label = QLabel("Display:")
         disp_spin = QSpinBox()
         disp_spin.setRange(0, max(0, disp_count - 1))
@@ -1169,8 +1185,8 @@ class MonitorNapApplication(QApplication):
 
         self.controllers = []
         if not self.config["monitors"]:
-            disp_monitors = win32api.EnumDisplayMonitors()
-            for i in range(len(disp_monitors)):
+            monitors = screeninfo.get_monitors()
+            for i in range(len(monitors)):
                 new_m = {
                     "monitor_index": i,
                     "display_index": i,
@@ -1230,13 +1246,14 @@ class MonitorNapApplication(QApplication):
         self._geometry_timer.timeout.connect(self.refresh_all_geometries)
         self._geometry_timer.start()
 
-        # Install native event filter for instant WM_DISPLAYCHANGE handling
-        try:
-            self._display_event_filter = DisplayChangeEventFilter(self.refresh_all_geometries)
-            self.installNativeEventFilter(self._display_event_filter)
-            log_message("Installed native WM_DISPLAYCHANGE event filter.")
-        except Exception as e:
-            log_message(f"Failed to install native event filter: {e}")
+        # Install native event filter for instant WM_DISPLAYCHANGE handling - Windows only
+        if os.name == 'nt':
+            try:
+                self._display_event_filter = DisplayChangeEventFilter(self.refresh_all_geometries)
+                self.installNativeEventFilter(self._display_event_filter)
+                log_message("Installed native WM_DISPLAYCHANGE event filter.")
+            except Exception as e:
+                log_message(f"Failed to install native event filter: {e}")
 
     def cleanup(self):
         log_message("Cleaning up: restoring brightness and saving config.")
