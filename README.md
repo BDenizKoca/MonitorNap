@@ -50,9 +50,10 @@ python monitornap.py
 
 ### Requirements
 - **Windows 10/11** (tested)
+- **Linux/macOS** (experimental - builds available but not tested)
 - **Python 3.8+** (if running from source)
 - **DDC/CI capable monitors** (for hardware dimming)
-- **Administrator privileges** (for global hotkey registration)
+- **Administrator privileges** (for global hotkey registration on Windows)
 
 ---
 
