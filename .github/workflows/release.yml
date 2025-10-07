@@ -51,27 +51,11 @@ jobs:
           dist/${{ runner.os }}/*
           dist/windows/*
 
-    # On the first (matrix) runner only, capture the commit message so the release job can use it
-    - name: Save commit message for release body
-      if: matrix.os == 'windows-latest'
-      run: |
-        echo "RELEASE_BODY<<EOF" > release_body.txt
-        git --no-pager log -1 --pretty=%B >> release_body.txt
-        echo "EOF" >> release_body.txt
-        ls -la
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Upload release body
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-body
-        path: release_body.txt
-
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Download artifacts
@@ -79,32 +63,12 @@ jobs:
       with:
         path: artifacts
 
-    - name: Download release body
-      uses: actions/download-artifact@v4
-      with:
-        name: release-body
-        path: artifacts/release-body
-
-    - name: Read release body
-      id: read_release_body
-      run: |
-        if [ -f artifacts/release-body/release_body.txt ]; then
-          # Extract the here-doc content
-          sed -n '/RELEASE_BODY<<EOF/,/EOF/p' artifacts/release-body/release_body.txt | sed '1d;$d' > release_body_extracted.txt
-          echo "release_body<<EOF" >> $GITHUB_OUTPUT
-          cat release_body_extracted.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        else
-          echo "No release body found, using default message."
-          echo "release_body=Automated cross-platform release for MonitorNap ${{ github.ref_name }}" >> $GITHUB_OUTPUT
-        fi
-
     - name: Create release
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}
-        body: ${{ steps.read_release_body.outputs.release_body }}
+        body: ${{ github.event.head_commit.message }}
         draft: false
         prerelease: false
         files: artifacts/**/*
