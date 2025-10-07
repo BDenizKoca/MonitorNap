@@ -1,6 +1,6 @@
 # MonitorNap
 
-**Download:** [MonitorNap.exe](https://github.com/BDenizKoca/MonitorNap/releases/latest/download/MonitorNap.exe) (36MB) | [All Releases](https://github.com/BDenizKoca/MonitorNap/releases)
+**Download:** [Latest Release](https://github.com/BDenizKoca/MonitorNap/releases/latest) - Cross-platform executables available for Windows, Linux, and macOS
 
 MonitorNap dims your monitors after inactivity using hardware (DDC/CI) and/or a software overlay. It runs in the system tray and supports a global hotkey for "Awake Mode".
 
@@ -25,10 +25,13 @@ I was getting blinded by my second monitor but I also get tired of having to con
 ## Installation
 
 ### **Quick Start (Recommended)**
-1. **Download:** [MonitorNap.exe](https://github.com/BDenizKoca/MonitorNap/releases/latest/download/MonitorNap.exe) (37MB) - No installation required!
-2. **Run:** Double-click the executable
+1. **Download:** Go to [Latest Release](https://github.com/BDenizKoca/MonitorNap/releases/latest) and download the executable for your platform:
+   - **Windows:** `MonitorNap-Windows.exe` (~37MB)
+   - **Linux:** `MonitorNap-ubuntu-latest` (~40MB)
+   - **macOS:** `MonitorNap-macos-latest` (~40MB)
+2. **Run:** Double-click the executable (no installation required!)
 3. **Configure:** Use "Identify" to map your monitors
-4. **Optional:** Enable "Start on Windows Startup"
+4. **Optional:** Enable "Start on Windows Startup" (Windows only)
 
 ### **Run from Source**
 ```powershell
@@ -49,8 +52,7 @@ python monitornap.py
 ---
 
 ### Requirements
-- **Windows 10/11** (tested)
-- **Linux/macOS** (experimental - builds available but not tested)
+- **Operating System:** Windows 10/11, Linux (Ubuntu), or macOS
 - **Python 3.8+** (if running from source)
 - **DDC/CI capable monitors** (for hardware dimming)
 - **Administrator privileges** (for global hotkey registration on Windows)
