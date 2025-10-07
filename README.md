@@ -11,35 +11,35 @@ A tiny, cross-platform tray utility for instantly putting your monitors to sleep
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
-**Download:** [Latest Release](https://github.com/BDenizKoca/MonitorNap/releases/latest) - Cross-platform executables available for Windows, Linux, and macOS
+**Download:** [Latest Release](https://github.com/BDenizKoca/MonitorNap/releases/latest) - Ready-to-use apps for Windows, Linux, and macOS
 
 </div>
 
 ## Why I Built It
-I was getting blinded by my second monitor but I also get tired of having to constantly switch it on/off so I made this. This enables me to keep my second monitor working without being distracting.
+I got tired of my second monitor being distracting, but I didn't want to keep turning it on and off manually. So I created MonitorNap to let me dim my monitors easily without the hassle.
 
 ![MonitorNap Screenshot](docs/demo.png)
 
 ## Features
 
-MonitorNap dims your monitors after inactivity using hardware (DDC/CI) and/or a software overlay. It runs in the system tray and supports a global hotkey for "Awake Mode".
+MonitorNap automatically dims your monitors after a period of inactivity. It works in the background and has a hotkey to keep things awake when needed.
 
-- Per-monitor inactivity detection (cursor and fullscreen checks)
-- Hardware dimming via DDC/CI (monitorcontrol)
-- Software dimming overlay with color/opacity
-- System tray menu, start minimized, and Windows startup registry
-- Global hotkey (via `keyboard`) to toggle Awake Mode
+- Detects when you're not using each monitor (checks cursor and full-screen apps)
+- Dims monitors using built-in controls or a software overlay
+- Runs in the system tray for easy access
+- Hotkey to temporarily disable dimming
+- Starts with Windows and minimizes to tray
 
 
 
 ## Installation
 
 ### **Quick Start (Recommended)**
-1. **Download:** Go to [Latest Release](https://github.com/BDenizKoca/MonitorNap/releases/latest) and download the executable for your platform:
-   - **Windows:** `MonitorNap-Windows.exe` (~37MB)
-   - **Linux:** `MonitorNap-ubuntu-latest` (~40MB)
-   - **macOS:** `MonitorNap-macos-latest` (~40MB)
-2. **Run:** Double-click the executable (no installation required!)
+1. **Download:** Go to [Latest Release](https://github.com/BDenizKoca/MonitorNap/releases/latest) and download the app for your system:
+   - **Windows:** `MonitorNap.exe` (~37MB)
+   - **Linux:** `MonitorNap` (~40MB) - Make it executable with `chmod +x MonitorNap`
+   - **macOS:** `MonitorNap.app` (~40MB)
+2. **Run:** Double-click the downloaded file (no installation required!)
 3. **Configure:** Use "Identify" to map your monitors
 4. **Optional:** Enable "Start on system startup" (Windows only)
 
@@ -64,7 +64,7 @@ python monitornap.py
 ### Requirements
 - **Operating System:** Windows 10/11, Linux (Ubuntu), or macOS
 - **Python 3.8+** (if running from source)
-- **DDC/CI capable monitors** (for hardware dimming)
+- **Compatible monitors** (most modern ones work)
 - **Administrator privileges** (for global hotkey registration on Windows)
 
 
@@ -88,7 +88,7 @@ python monitornap.py
 #### Per-Monitor Settings  
 - **Display Selector** - Choose which display gets the overlay
 - **Identify Button** - Flash overlay to identify the monitor
-- **Hardware Dimming** - Enable DDC/CI brightness control (30% default)
+- **Hardware Dimming** - Enable built-in brightness control (30% default)
 - **Software Dimming** - Enable overlay dimming (50% opacity default)
 - **Overlay Color** - Customize the dimming overlay color
 
@@ -119,10 +119,10 @@ Settings are automatically saved to:
 
 ## Known Limitations
 
-- **Monitor index mapping** may differ between Windows enumerations and monitorcontrol; if dimming the wrong screen, use the Display selector to map correctly
+- **Monitor index mapping** may differ between systems; if dimming the wrong screen, use the Display selector to map correctly
 - **Fullscreen detection** is heuristic and may not catch all cases (some games/apps may still dim)
-- **DDC/CI support varies** by monitor manufacturer - some monitors don't support hardware brightness control
-- **USB monitors** typically don't support DDC/CI and will only use software overlay
+- **Built-in dimming support varies** by monitor - some monitors don't support hardware brightness control
+- **USB monitors** typically don't support built-in dimming and will only use software overlay
 - **Multiple identical monitors** may be harder to distinguish without using Identify
 
 
