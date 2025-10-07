@@ -1,26 +1,36 @@
+<div align="center">
+
 # MonitorNap
+
+
+**Turn Off Your Displays with a Single Click**
+A tiny, cross-platform tray utility for instantly putting your monitors to sleep without locking your computer.
+
+[![CI](https://github.com/BDenizKoca/MonitorNap/actions/workflows/ci.yml/badge.svg)](https://github.com/BDenizKoca/MonitorNap/actions/workflows/ci.yml)
+[![Release](https://github.com/BDenizKoca/MonitorNap/actions/workflows/release.yml/badge.svg)](https://github.com/BDenizKoca/MonitorNap/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 
 **Download:** [Latest Release](https://github.com/BDenizKoca/MonitorNap/releases/latest) - Cross-platform executables available for Windows, Linux, and macOS
 
-MonitorNap dims your monitors after inactivity using hardware (DDC/CI) and/or a software overlay. It runs in the system tray and supports a global hotkey for "Awake Mode".
+</div>
 
----
+## Why I Built It
+I was getting blinded by my second monitor but I also get tired of having to constantly switch it on/off so I made this. This enables me to keep my second monitor working without being distracting.
 
 ![MonitorNap Screenshot](docs/demo.png)
 
 ## Features
+
+MonitorNap dims your monitors after inactivity using hardware (DDC/CI) and/or a software overlay. It runs in the system tray and supports a global hotkey for "Awake Mode".
+
 - Per-monitor inactivity detection (cursor and fullscreen checks)
 - Hardware dimming via DDC/CI (monitorcontrol)
 - Software dimming overlay with color/opacity
 - System tray menu, start minimized, and Windows startup registry
 - Global hotkey (via `keyboard`) to toggle Awake Mode
 
----
 
-## Why I Built It
-I was getting blinded by my second monitor but I also get tired of having to constantly switch it on/off so I made this. This enables me to keep my second monitor working without being distracting.
-
----
 
 ## Installation
 
@@ -31,7 +41,7 @@ I was getting blinded by my second monitor but I also get tired of having to con
    - **macOS:** `MonitorNap-macos-latest` (~40MB)
 2. **Run:** Double-click the executable (no installation required!)
 3. **Configure:** Use "Identify" to map your monitors
-4. **Optional:** Enable "Start on Windows Startup" (Windows only)
+4. **Optional:** Enable "Start on system startup" (Windows only)
 
 ### **Run from Source**
 ```powershell
@@ -49,7 +59,7 @@ pip install -r requirements.txt
 # Run the application
 python monitornap.py
 ```
----
+
 
 ### Requirements
 - **Operating System:** Windows 10/11, Linux (Ubuntu), or macOS
@@ -57,7 +67,7 @@ python monitornap.py
 - **DDC/CI capable monitors** (for hardware dimming)
 - **Administrator privileges** (for global hotkey registration on Windows)
 
----
+
 
 ## Usage
 
@@ -102,11 +112,10 @@ Right-click the tray icon for quick access to:
 
 ### Configuration
 Settings are automatically saved to:
-```
-%APPDATA%\MonitorNap\monitornap_config.json
-```
+- **Windows:** `%APPDATA%\MonitorNap\monitornap_config.json`
+- **Linux/macOS:** `~/.monitornap/monitornap_config.json`
 
----
+
 
 ## Known Limitations
 
@@ -116,19 +125,19 @@ Settings are automatically saved to:
 - **USB monitors** typically don't support DDC/CI and will only use software overlay
 - **Multiple identical monitors** may be harder to distinguish without using Identify
 
----
+
 
 ## Future Plans
 
 Feature-complete for now but open to contributions.
 
----
+
 
 ## Connect With Me  
 Email: [b.denizkoca@gmail.com](mailto:b.denizkoca@gmail.com)  
 GitHub: [@BDenizKoca](https://github.com/BDenizKoca) 
 
----
+
 
 ## License
 
