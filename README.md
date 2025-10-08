@@ -2,7 +2,7 @@
 
 # MonitorNap
 
-<img width="650"  alt="MonitorNap" src="https://github.com/user-attachments/assets/5480a9f6-bdb4-41a6-8b15-860bdc04a398" />
+<img width="650"  alt="MonitorNap" src="https://file.garden/aLboplo8eB2dIZKp/GitHub/MonitorNap.png?v=1759929131318" />
 
 **Turn Off Your Displays with a Single Click**
 A tiny, cross-platform tray utility for instantly putting your monitors to sleep without locking your computer.
@@ -14,7 +14,7 @@ A tiny, cross-platform tray utility for instantly putting your monitors to sleep
 
 **Download:** [Latest Release](https://github.com/BDenizKoca/MonitorNap/releases/latest) - Ready-to-use apps for Windows, Linux, and macOS
 
-<img width="400" alt="ChatGPT Image Oct 7, 2025, 06_03_29 PM" src="https://github.com/user-attachments/assets/0801f6cd-b700-47a3-9b78-d527d316f9f1" />
+<img width="400" alt="MonitorNap Logo" src="https://file.garden/aLboplo8eB2dIZKp/GitHub/monitornaplogo.png" />
 
 </div>
 
