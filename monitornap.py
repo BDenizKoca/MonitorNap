@@ -7,13 +7,13 @@ import atexit
 import threading
 import ctypes
 from ctypes import wintypes
-import win32api
-import win32gui
-import winreg
-import keyboard
 from collections import deque
-from monitorcontrol import get_monitors
 from datetime import datetime
+from typing import Optional, Dict, List, Any, Callable
+
+import keyboard
+from monitorcontrol import get_monitors
+import screeninfo
 
 from PyQt6.QtCore import Qt, QTimer, QRect, QObject, QAbstractNativeEventFilter
 from PyQt6.QtGui import QIcon, QPainter, QColor, QAction, QCursor, QPixmap
@@ -23,8 +23,7 @@ from PyQt6.QtWidgets import (
     QSystemTrayIcon, QMenu, QMessageBox, QGroupBox, QFileDialog, QSpinBox, QToolTip
 )
 
-import screeninfo
-
+# Platform-specific imports
 if os.name == 'nt':
     import win32api
     import win32gui
@@ -60,8 +59,8 @@ ICON_PATH = resolve_icon_path()
 if os.name == 'nt':
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
-    except Exception:
-        pass
+    except (AttributeError, OSError) as e:
+        log_message(f"Failed to set DPI awareness: {e}", debug=True)
 
 # -------------------------------------------------------------------------------------
 # Logging Utility
@@ -69,7 +68,13 @@ if os.name == 'nt':
 LOG_CACHE = deque(maxlen=10000)
 DEBUG_MODE = False
 
-def log_message(msg: str, debug: bool = False):
+def log_message(msg: str, debug: bool = False) -> None:
+    """Log a message with timestamp to both console and cache.
+    
+    Args:
+        msg: The message to log
+        debug: If True, only log when DEBUG_MODE is enabled
+    """
     if debug and not DEBUG_MODE:
         return
     t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -82,9 +87,11 @@ def log_message(msg: str, debug: bool = False):
 # Configuration Manager
 # -------------------------------------------------------------------------------------
 class ConfigManager:
-    def __init__(self):
+    """Manages application configuration loading and saving."""
+    
+    def __init__(self) -> None:
         self.CONFIG_FILE = self.get_config_path()
-        self.DEFAULT_CONFIG = {
+        self.DEFAULT_CONFIG: Dict[str, Any] = {
             "monitors": [],
             "inactivity_limit": 10,
             "overlay_fade_time": 0.5,
@@ -97,7 +104,8 @@ class ConfigManager:
         }
         self.config = self.load_config()
 
-    def get_config_path(self):
+    def get_config_path(self) -> str:
+        """Get the path to the configuration file based on the operating system."""
         if os.name == "nt":
             appdata = os.getenv("APPDATA")
             cfg_dir = os.path.join(appdata, "MonitorNap") if appdata else "."
@@ -106,7 +114,8 @@ class ConfigManager:
         else:
             return os.path.join(".", "monitornap_config.json")
 
-    def load_config(self):
+    def load_config(self) -> Dict[str, Any]:
+        """Load configuration from file, creating default if not exists."""
         if not os.path.exists(self.CONFIG_FILE):
             with open(self.CONFIG_FILE, "w") as f:
                 json.dump(self.DEFAULT_CONFIG, f, indent=4)
@@ -128,22 +137,30 @@ class ConfigManager:
                 m.setdefault("overlay_color", "#000000")
             log_message(f"Loaded config from {self.CONFIG_FILE}")
             return merged
-        except Exception as e:
+        except (json.JSONDecodeError, IOError, OSError) as e:
             log_message(f"Error loading config: {e}")
             return self.DEFAULT_CONFIG.copy()
 
-    def save_config(self):
+    def save_config(self) -> None:
+        """Save current configuration to file."""
         try:
             with open(self.CONFIG_FILE, "w") as f:
                 json.dump(self.config, f, indent=4)
             log_message("Configuration saved.")
-        except Exception as e:
+        except (IOError, OSError) as e:
             log_message(f"Error saving config: {e}")
 
 # -------------------------------------------------------------------------------------
 # Set Startup Registry (Windows)
 # -------------------------------------------------------------------------------------
-def set_startup_registry(enabled, script_path=None, args: str = ""):
+def set_startup_registry(enabled: bool, script_path: Optional[str] = None, args: str = "") -> None:
+    """Set or remove application from Windows startup registry.
+    
+    Args:
+        enabled: If True, add to startup; if False, remove from startup
+        script_path: Path to executable (defaults to current script)
+        args: Command line arguments to pass
+    """
     if os.name != 'nt':
         log_message("Startup registry not supported on this platform.")
         return
@@ -163,346 +180,27 @@ def set_startup_registry(enabled, script_path=None, args: str = ""):
                     log_message("Removed MonitorNap from startup.")
                 except FileNotFoundError:
                     log_message("MonitorNap not found in startup registry.")
-    except Exception as e:
+    except (OSError, PermissionError, FileNotFoundError) as e:
         log_message(f"Failed to modify startup registry: {e}")
 
-# -------------------------------------------------------------------------------------
-# Overlay Window for Software Dimming
-# -------------------------------------------------------------------------------------
-class OverlayWindow(QWidget):
-    def __init__(self, rect: QRect, color="#000000"):
-        super().__init__()
-        self.overlay_color = color
-        self.init_window(rect)
+# Import modular components
+from monitor_controller import MonitorController, OverlayWindow
+from ui_components import MonitorSettingsWidget, GlobalSettingsWidget, QuickActionsWidget
 
-    def init_window(self, rect: QRect):
-        flags = (Qt.WindowType.FramelessWindowHint |
-                 Qt.WindowType.WindowStaysOnTopHint |
-                 Qt.WindowType.Tool |
-                 Qt.WindowType.BypassWindowManagerHint)
-        self.setWindowFlags(flags)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        self.setGeometry(rect)
-        self.setWindowOpacity(0.0)
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        col = QColor(self.overlay_color)
-        painter.setOpacity(self.windowOpacity())
-        painter.fillRect(self.rect(), col)
-
-    def set_opacity(self, opacity: float):
-        self.setWindowOpacity(opacity)
-        self.update()
-
-    def set_overlay_color(self, color_str):
-        self.overlay_color = color_str
-        self.update()
-
-# -------------------------------------------------------------------------------------
-# Monitor Controller with Per-Monitor Activity Detection
-# -------------------------------------------------------------------------------------
-class MonitorController(QObject):
-    def __init__(self, monitor_cfg, global_cfg, parent=None):
-        super().__init__(parent)
-        self.cfg = monitor_cfg
-        self.global_cfg = global_cfg
-        self.is_dimmed = False
-        self.restore_in_progress = False
-        self.last_active = time.time()
-        # Indices: original user index, plus separate display/DDC indices for mapping
-        self.monitor_index = self.cfg["monitor_index"]
-        self.display_index = self.cfg.get("display_index", self.monitor_index)
-        self.ddc_index = self.cfg.get("ddc_index", self.monitor_index)
-        self.monitorcontrol_monitor = None
-        self.original_brightness = None
-
-        self.left = 0
-        self.top = 0
-        self.width = 1
-        self.height = 1
-
-        self.overlay = None
-
-        # Variables for QTimer-based hardware fade
-        self.fade_timer = None
-        self.current_fade_step = 0
-        self.fade_steps = 0
-        self.fade_start = 0
-        self.fade_target = 0
-        self.fade_step_size = 0
-
-        self.init_monitor()
-        self.check_timer = QTimer()
-        self.check_timer.setInterval(1000)
-        self.check_timer.timeout.connect(self.check_inactivity)
-        self.check_timer.start()
-
-    def init_monitor(self):
-        # Initialize DDC/CI monitor based on ddc_index
-        ddc_idx = self.ddc_index
-        all_mc = get_monitors()
-        if 0 <= ddc_idx < len(all_mc):
-            self.monitorcontrol_monitor = all_mc[ddc_idx]
-            try:
-                with self.monitorcontrol_monitor:
-                    self.original_brightness = self.monitorcontrol_monitor.get_luminance()
-            except Exception as e:
-                log_message(f"Failed to read brightness from DDC monitor {ddc_idx}: {e}")
-                self.original_brightness = None
-        else:
-            self.monitorcontrol_monitor = None
-
-        # Initialize geometry based on display_index
-        self._update_geometry_from_system()
-        rect = QRect(self.left, self.top, self.width, self.height)
-        self.overlay = OverlayWindow(rect, color=self.cfg.get("overlay_color", "#000000"))
-        self.overlay.hide()
-        log_message(
-            f"Initialized MonitorController for display {self.display_index} (ddc {ddc_idx}): pos=({self.left},{self.top}), "
-            f"size=({self.width}x{self.height}), brightness={self.original_brightness}"
-        )
-
-    def _update_geometry_from_system(self):
-        idx = self.display_index
-        monitors = screeninfo.get_monitors()
-        if 0 <= idx < len(monitors):
-            mon = monitors[idx]
-            self.left, self.top = mon.x, mon.y
-            self.width, self.height = mon.width, mon.height
-        else:
-            self.left, self.top, self.width, self.height = 0, 0, 800, 600
-
-    def refresh_geometry(self):
-        prev = (self.left, self.top, self.width, self.height)
-        self._update_geometry_from_system()
-        now = (self.left, self.top, self.width, self.height)
-        if now != prev and self.overlay:
-            rect = QRect(self.left, self.top, self.width, self.height)
-            self.overlay.setGeometry(rect)
-            self.overlay.update()
-            log_message(
-                f"Monitor {self.monitor_index} geometry updated: pos=({self.left},{self.top}), size=({self.width}x{self.height})",
-                debug=True,
-            )
-
-    def is_monitor_active(self):
-        # Check if the cursor is within this monitor's bounds.
-        cursor_pos = QCursor.pos()
-        x, y = cursor_pos.x(), cursor_pos.y()
-        if self.left <= x < (self.left + self.width) and self.top <= y < (self.top + self.height):
-            return True
-
-        # Check if the foreground window substantially covers this monitor (fullscreen or borderless) - Windows only
-        if os.name == 'nt':
-            fg_hwnd = win32gui.GetForegroundWindow()
-            if fg_hwnd and win32gui.IsWindowVisible(fg_hwnd):
-                try:
-                    win_left, win_top, win_right, win_bottom = win32gui.GetWindowRect(fg_hwnd)
-                    # Compute overlap area ratio
-                    mon_left, mon_top = self.left, self.top
-                    mon_right, mon_bottom = self.left + self.width, self.top + self.height
-                    inter_left = max(mon_left, win_left)
-                    inter_top = max(mon_top, win_top)
-                    inter_right = min(mon_right, win_right)
-                    inter_bottom = min(mon_bottom, win_bottom)
-                    inter_w = max(0, inter_right - inter_left)
-                    inter_h = max(0, inter_bottom - inter_top)
-                    inter_area = inter_w * inter_h
-                    mon_area = max(1, self.width * self.height)
-                    if inter_area / mon_area >= 0.95:
-                        return True
-                except Exception:
-                    pass
-        return False
-
-    def check_inactivity(self):
-        if self.global_cfg["awake_mode"]:
-            if self.is_dimmed:
-                self.restore_dim()
-            return
-
-        if self.is_monitor_active():
-            self.last_active = time.time()
-            if self.is_dimmed:
-                self.restore_dim()
-        else:
-            idle_time = time.time() - self.last_active
-            if idle_time >= self.global_cfg["inactivity_limit"] and not self.is_dimmed:
-                self.dim()
-
-    def dim(self):
-        try:
-            if self.is_dimmed:
-                return
-            self.is_dimmed = True
-            # Software dimming
-            if self.cfg.get("enable_software_dimming", True) and self.overlay:
-                target_opacity = max(0.0, min(1.0, float(self.cfg.get("software_dimming_level", 0.5))))
-                self.overlay.show()
-                self.fade_overlay(target_opacity)
-            # Hardware dimming
-            if self.cfg.get("enable_hardware_dimming", True) and self.original_brightness is not None:
-                self.fade_hardware(down=True)
-        except Exception as e:
-            log_message(f"Error during dim(): {e}")
-    def set_indices(self, display_index: int, ddc_index: int):
-        # Update indices and re-init geometry and DDC monitor
-        self.display_index = max(0, int(display_index))
-        self.ddc_index = max(0, int(ddc_index))
-        # Update DDC
-        all_mc = get_monitors()
-        self.monitorcontrol_monitor = None
-        self.original_brightness = None
-        if 0 <= self.ddc_index < len(all_mc):
-            self.monitorcontrol_monitor = all_mc[self.ddc_index]
-            try:
-                with self.monitorcontrol_monitor:
-                    self.original_brightness = self.monitorcontrol_monitor.get_luminance()
-            except Exception as e:
-                log_message(f"DDC probe failed on index {self.ddc_index}: {e}", debug=True)
-        # Update geometry and overlay
-        self.refresh_geometry()
-    def restore_dim(self):
-        self.is_dimmed = False
-        # For instant wake-up, use immediate restore instead of fade
-        self.immediate_restore()
-
-    def fade_hardware(self, down=True):
-        if self.restore_in_progress:
-            return
-        self.restore_in_progress = True
-
-        # Determine starting brightness by reading the current value when possible
-        start = None
-        if self.monitorcontrol_monitor:
-            try:
-                with self.monitorcontrol_monitor:
-                    start = int(self.monitorcontrol_monitor.get_luminance())
-            except Exception as e:
-                log_message(f"[fade_hardware] Failed to read current brightness: {e}")
-        if start is None:
-            # Fallback to last known original or a sane default
-            start = int(self.original_brightness) if self.original_brightness is not None else 100
-
-        if down:
-            level = max(0, min(100, int(self.cfg["hardware_dimming_level"])))
-            target = max(0, min(100, int(round(start * (1 - level / 100.0)))))
-        else:
-            # Restore up to the original brightness if known, otherwise keep current
-            target = int(self.original_brightness) if self.original_brightness is not None else start
-
-        steps = self.global_cfg["overlay_fade_steps"]
-        duration = self.global_cfg["overlay_fade_time"]
-        # Make wake-up (restore) almost instant
-        if not down:
-            duration = max(0.01, duration * 0.05)  # 20x faster, almost instant
-            steps = min(steps, 3)  # Use fewer steps for faster wake
-        if steps <= 0:
-            steps = 1
-        self.fade_step_size = (target - start) / steps if steps else 0
-        interval_ms = int((duration / steps) * 1000)
-        self.current_fade_step = 0
-        self.fade_steps = steps
-        self.fade_start = start
-        self.fade_target = target
-        self.fade_timer = QTimer()
-        self.fade_timer.setInterval(interval_ms)
-        self.fade_timer.timeout.connect(self._do_fade)
-        self.fade_timer.start()
-
-    def _do_fade(self):
-        self.current_fade_step += 1
-        new_value = self.fade_start + self.fade_step_size * self.current_fade_step
-        if ((self.fade_step_size > 0 and new_value >= self.fade_target) or 
-            (self.fade_step_size < 0 and new_value <= self.fade_target) or 
-            self.current_fade_step >= self.fade_steps):
-            new_value = self.fade_target
-            self.set_brightness(int(new_value))
-            self.fade_timer.stop()
-            self.restore_in_progress = False
-        else:
-            self.set_brightness(int(new_value))
-
-    def fade_overlay(self, target_opacity):
-        current = self.overlay.windowOpacity()
-        steps = self.global_cfg["overlay_fade_steps"]
-        if steps <= 0:
-            steps = 1
-        total_time = self.global_cfg["overlay_fade_time"]
-        # Speed up when restoring (fading out to 0) - almost instant wake animation
-        if target_opacity < current:
-            total_time = max(0.01, total_time * 0.05)  # 20x faster, almost instant
-            steps = min(steps, 3)  # Use fewer steps for faster wake
-        step_opacity = (target_opacity - current) / steps
-        step_delay_ms = max(1, int((total_time / steps) * 1000))
-        self._fade_overlay_step(current, target_opacity, step_opacity, step_delay_ms)
-
-    def _fade_overlay_step(self, current, target, step_opacity, delay):
-        next_val = current + step_opacity
-        if (step_opacity > 0 and next_val >= target) or (step_opacity < 0 and next_val <= target):
-            next_val = target
-        self.overlay.set_opacity(next_val)
-        if abs(next_val - target) > 0.01:
-            QTimer.singleShot(delay, lambda: self._fade_overlay_step(next_val, target, step_opacity, delay))
-        else:
-            if abs(target) < 0.01:
-                self.overlay.hide()
-
-    def identify(self, duration_ms: int = 1000, opacity: float = 0.6):
-        """Flash the overlay briefly to identify this monitor."""
-        if not self.overlay:
-            return
-        try:
-            self.overlay.show()
-            self.fade_overlay(max(0.0, min(1.0, opacity)))
-            QTimer.singleShot(duration_ms, lambda: self.fade_overlay(0.0))
-        except Exception as e:
-            log_message(f"Identify failed on monitor {self.monitor_index}: {e}")
-
-    def set_brightness(self, value):
-        if not self.monitorcontrol_monitor:
-            return
-        try:
-            with self.monitorcontrol_monitor:
-                self.monitorcontrol_monitor.set_luminance(value)
-        except Exception as e:
-            log_message(f"Error setting brightness on monitor {self.monitor_index}: {e}")
-
-    def disable_hw_dimming(self):
-        if self.is_dimmed and self.original_brightness is not None:
-            self.set_brightness(self.original_brightness)
-        self.cfg["enable_hardware_dimming"] = False
-
-    def disable_sw_dimming(self):
-        if self.is_dimmed and self.overlay:
-            self.overlay.hide()
-            self.overlay.set_opacity(0.0)
-        self.cfg["enable_software_dimming"] = False
-
-    def immediate_restore(self):
-        # Stop any active fade timer
-        if self.fade_timer and self.fade_timer.isActive():
-            self.fade_timer.stop()
-        # Immediately set hardware brightness back to original
-        if self.monitorcontrol_monitor and self.original_brightness is not None:
-            self.set_brightness(self.original_brightness)
-        # Immediately hide the overlay and reset opacity
-        if self.overlay:
-            self.overlay.hide()
-            self.overlay.set_opacity(0.0)
-        self.is_dimmed = False
+# MonitorController is now imported from monitor_controller.py
 
 # -------------------------------------------------------------------------------------
 # Hotkey Recording Thread
 # -------------------------------------------------------------------------------------
 class RecordHotkeyThread(threading.Thread):
-    def __init__(self):
+    """Thread for recording global hotkey combinations."""
+    
+    def __init__(self) -> None:
         super().__init__()
-        self.result = None
+        self.result: Optional[str] = None
 
-    def run(self):
+    def run(self) -> None:
+        """Record a hotkey combination from user input."""
         try:
             self.result = keyboard.read_hotkey(suppress=False)
         except Exception as e:
@@ -513,7 +211,19 @@ class RecordHotkeyThread(threading.Thread):
 # Main Application Window
 # -------------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
-    def __init__(self, controllers, config_manager):
+    """Main application window for MonitorNap.
+    
+    This class handles the main UI, user interactions, and coordinates
+    between the monitor controllers and configuration management.
+    """
+    
+    def __init__(self, controllers: List[MonitorController], config_manager: ConfigManager) -> None:
+        """Initialize the main window.
+        
+        Args:
+            controllers: List of monitor controllers
+            config_manager: Configuration manager instance
+        """
         super().__init__()
         self.controllers = controllers
         self.config_manager = config_manager
@@ -523,7 +233,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QApplication.instance().app_icon)
         self.resize(720, 480)
 
-        self.record_thread = None
+        self.record_thread: Optional[RecordHotkeyThread] = None
         self.record_poll_timer = QTimer()
         self.record_poll_timer.setInterval(200)
         self.record_poll_timer.timeout.connect(self.check_record_thread_done)
