@@ -12,7 +12,7 @@ from PyQt6.QtGui import QCursor
 from monitorcontrol import get_monitors
 import screeninfo
 
-from monitornap import log_message
+from logging_utils import log_message
 
 
 class OverlayWindow:

@@ -54,6 +54,11 @@ def resolve_icon_path() -> str:
 ICON_PATH = resolve_icon_path()
 
 # -------------------------------------------------------------------------------------
+# Logging Utilities
+# -------------------------------------------------------------------------------------
+from logging_utils import log_message, LOG_CACHE, set_debug_mode
+
+# -------------------------------------------------------------------------------------
 # Set Process DPI Awareness
 # -------------------------------------------------------------------------------------
 if os.name == 'nt':
@@ -61,27 +66,6 @@ if os.name == 'nt':
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     except (AttributeError, OSError) as e:
         log_message(f"Failed to set DPI awareness: {e}", debug=True)
-
-# -------------------------------------------------------------------------------------
-# Logging Utility
-# -------------------------------------------------------------------------------------
-LOG_CACHE = deque(maxlen=10000)
-DEBUG_MODE = False
-
-def log_message(msg: str, debug: bool = False) -> None:
-    """Log a message with timestamp to both console and cache.
-    
-    Args:
-        msg: The message to log
-        debug: If True, only log when DEBUG_MODE is enabled
-    """
-    if debug and not DEBUG_MODE:
-        return
-    t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    prefix = "[DEBUG]" if debug else "[INFO]"
-    line = f"{prefix} {t} - {msg}"
-    LOG_CACHE.append(line)
-    print(line)
 
 # -------------------------------------------------------------------------------------
 # Configuration Manager
@@ -891,8 +875,7 @@ class MonitorNapApplication(QApplication):
         self.config_manager = config_manager
         self.config = config_manager.config
         # Set global debug mode flag
-        global DEBUG_MODE
-        DEBUG_MODE = bool(self.config.get("debug_mode", False))
+        set_debug_mode(bool(self.config.get("debug_mode", False)))
 
         self.controllers = []
         if not self.config["monitors"]:

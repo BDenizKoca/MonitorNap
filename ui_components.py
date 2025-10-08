@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QColor
 
-from monitornap import log_message
+from logging_utils import log_message
 
 
 class MonitorSettingsWidget(QGroupBox):
